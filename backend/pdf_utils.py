@@ -109,13 +109,14 @@ _REPORT_NOTE = "Angka worksheet-level (belum GL penuh / e-Faktur). Dihasilkan ot
 
 def build_table_pdf(*, title: str, subtitle: str = "", columns, rows,
                     total_row=None, org_name: str = "PT SIPRO Land",
-                    layout: dict = None, images: dict = None) -> bytes:
+                    layout: dict = None, images: dict = None, intro: str = "",
+                    note: str = None) -> bytes:
     """Render a tabular finance report to PDF bytes (header + optional total row)."""
     if layout:
         import pdf_layout as _pl
         return _pl.render_table(layout, images or {}, title=title, subtitle=subtitle,
                                 columns=columns, rows=rows, total_row=total_row,
-                                note=_REPORT_NOTE)
+                                note=_REPORT_NOTE if note is None else note, intro=intro)
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4, topMargin=20 * mm, bottomMargin=18 * mm,

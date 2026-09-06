@@ -17,7 +17,7 @@ from datetime import datetime
 import sequences as seq
 import reference as ref
 from db import db, ORG_ID
-from core_utils import new_id, now_iso
+from core_utils import new_id, now_iso, period_of  # noqa: F401 — CFG-01
 import finance_engine as fe
 
 logger = logging.getLogger("sipro.tax")
@@ -26,11 +26,6 @@ TAX_NOTE = "Estimasi worksheet SIPRO — bukan e-Faktur/e-Bupot resmi DJP; konfi
 # SSOT: jenis & status pajak diambil dari reference.py (bukan daftar duplikat).
 TAX_TYPES = tuple(ref.values("tax_type"))
 RECORD_STATUSES = tuple(ref.values("tax_status"))
-
-
-def period_of(iso) -> str:
-    s = str(iso or "")
-    return s[:7] if len(s) >= 7 else None  # "YYYY-MM"
 
 
 # ----------------------------- PPN Masukan (input VAT) -----------------------------

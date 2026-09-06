@@ -85,12 +85,28 @@ DEAL_TOKENS = (
     "doc_number", "date", "buyer_name", "buyer_phone", "project_name", "unit_code",
     "unit_type", "price", "booking_fee", "reserved_until", "sales_name", "org_name",
 )
+# `ar_router.invoice_pdf` — invoice/tagihan pembeli (DOC-02).
+INVOICE_TOKENS = (
+    "date", "org_name", "customer_name", "unit_code", "project_name", "total", "paid",
+    "outstanding", "next_due", "status",
+)
 
 TOKENS_BY_CODE = {
     "SPR_CASH": DOCGEN_TOKENS, "SPR_CASH_STAGED": DOCGEN_TOKENS,
     "SPR_KPR": DOCGEN_TOKENS, "SPKT": DOCGEN_TOKENS,
     "BAP": BAP_TOKENS,
     "SPR": DEAL_TOKENS, "PPJB": DEAL_TOKENS, "AJB": DEAL_TOKENS,
+    "INVOICE": INVOICE_TOKENS,
+}
+
+# Naskah bawaan per KODE (menimpa naskah kategori) — invoice pembeli butuh kalimat yang
+# menyebut siapa, unit apa, sudah bayar berapa, dan sisa berapa; bukan kalimat penagihan umum.
+DEFAULTS_BY_CODE = {
+    "INVOICE": ("Kepada Yth. {{customer_name}}, berikut rincian tagihan pembayaran unit "
+                "{{unit_code}} {{project_name}} per {{date}}. Total kewajiban {{total}}, sudah "
+                "dibayar {{paid}}, sisa {{outstanding}}. Termin terdekat jatuh tempo {{next_due}}. "
+                "Mohon melakukan pembayaran sebelum tanggal tersebut; hubungi {{org_name}} bila "
+                "ada pertanyaan."),
 }
 
 LABELS = {
@@ -148,6 +164,8 @@ SAMPLES = {
     "booking_fee": "Rp 5.000.000", "total": "Rp 867.125.000",
     "reserved_until": "2026-09-09",
     "intro": "Menindaklanjuti pembelian rumah atas nama:",
+    "paid": "Rp 50.000.000", "outstanding": "Rp 817.125.000", "next_due": "10 September 2026",
+    "status": "Sebagian dibayar",
 }
 
 # Naskah bawaan per kategori — hanya memakai placeholder yang SAH di semua jenis dokumen
@@ -197,7 +215,7 @@ def known_tokens(code: str) -> set:
 
 
 def default_script(code: str) -> str:
-    return DEFAULTS.get(category_of(code), "")
+    return DEFAULTS_BY_CODE.get(code) or DEFAULTS.get(category_of(code), "")
 
 
 def unknown_tokens(code: str, content: str) -> list:
@@ -219,20 +237,25 @@ def sample_script(code: str, content: str) -> str:
     return render(content, ctx)
 
 
-async def intro_for(org: str, code: str, ctx: dict = None) -> str:
+async def intro_for(org: str, code: str, ctx: dict = None, *, use_default: bool = False) -> str:
     """Naskah yang DITULIS pemakai untuk jenis dokumen ini, siap ditempel ke dokumennya.
 
     Dipakai dokumen yang isinya dirakit sistem (SPK, PO, Surat Peringatan, berita acara
     lapangan): naskah pemakai tercetak sebagai pembuka DI ATAS rincian yang dihitung mesin —
     inilah yang membuat "naskah masuk ke dalam dokumen", bukan hidup di layar konfigurasi
     saja. Bila pemakai belum menulis apa pun, tidak ada yang ditempel (bukan naskah bawaan
-    yang dipaksakan ke dokumen resmi).
+    yang dipaksakan ke dokumen resmi) — kecuali `use_default=True` (invoice: naskah bawaan
+    per kode memang dirancang untuk dicetak).
     """
     tpl = await db.document_templates.find_one({"org_id": org, "code": code},
                                               {"_id": 0, "content": 1, "is_active": 1})
     isi = ((tpl or {}).get("content") or "").strip()
-    if not isi or (tpl or {}).get("is_active") is False:
+    if (tpl or {}).get("is_active") is False:
         return ""
+    if not isi:
+        if not use_default:
+            return ""
+        isi = default_script(code)
     return render(isi, ctx or {})
 
 

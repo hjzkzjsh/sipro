@@ -153,7 +153,11 @@ def audit_ia():
 # =============================================================== B. POC core
 def audit_poc():
     head("B. POC core Fase 46 tetap hijau")
-    r = subprocess.run([sys.executable, str(ROOT / "poc" / "poc_46.py")],
+    poc = ROOT / "poc" / "poc_46.py"
+    if not poc.exists():
+        print("  SKIP  poc/poc_46.py tidak ada di repo (direktori poc/ tidak pernah di-commit) — dilewati")
+        return
+    r = subprocess.run([sys.executable, str(poc)],
                        capture_output=True, text=True, timeout=900)
     check(r.returncode == 0, "poc/poc_46.py PASS",
           (r.stdout or r.stderr).strip().splitlines()[-1] if (r.stdout or r.stderr) else "")

@@ -6,7 +6,7 @@ import calendar
 import re
 from datetime import datetime, timezone
 
-from core_utils import now, now_iso
+from core_utils import WIB, now, now_iso, period_of  # noqa: F401 — CFG-01: period_of satu definisi
 
 # Sumber/tujuan kas -> akun buku besar. SSOT grup `cash_source`.
 CASH_ACCOUNT = {"kas": "1-1100", "bank": "1-1200"}
@@ -31,13 +31,8 @@ def parse_iso(value):
         return None
 
 
-def period_of(value) -> str:
-    """'2026-08-10T09:00:00+00:00' -> '2026-08'."""
-    return str(value or "")[:7]
-
-
 def current_period() -> str:
-    return now().strftime("%Y-%m")
+    return now().astimezone(WIB).strftime("%Y-%m")
 
 
 def validate_period(period: str) -> str:

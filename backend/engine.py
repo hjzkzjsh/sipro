@@ -222,23 +222,22 @@ async def recompute_project_progress(project_id: str, org_id: str = ORG_ID):
     ts = now_iso()
     scheds = await db.build_schedules.find(
         {"org_id": org_id, "project_id": project_id}, {"_id": 0, "progress": 1}).to_list(2000)
-    units_progress = round(sum(float(s.get("progress") or 0)
-                               for s in scheds) / len(scheds)) if scheds else 0
+    # PRJ-01: pembagi = SEMUA unit proyek; unit yang belum dijadwalkan = 0%, bukan diabaikan.
+    units_total = await db.units.count_documents({"org_id": org_id, "project_id": project_id})
+    pembagi = max(units_total, len(scheds))
+    units_progress = round(sum(float(s.get("progress") or 0) for s in scheds) / pembagi) if pembagi else 0
+    rekap = {"units_progress": units_progress, "units_scheduled": len(scheds),
+             "units_total": units_total, "updated_at": ts}
     phases = await db.construction_phases.find(
         {"org_id": org_id, "project_id": project_id}, {"_id": 0}).to_list(300)
     if not phases:
-        await db.projects.update_one({"id": project_id, "org_id": org_id},
-                                     {"$set": {"units_progress": units_progress,
-                                               "units_scheduled": len(scheds),
-                                               "updated_at": ts}})
+        await db.projects.update_one({"id": project_id, "org_id": org_id}, {"$set": rekap})
         return 0
     total_w = sum(p.get("weight", 0) for p in phases) or 1
     overall = round(sum(p.get("weight", 0) * p.get("progress", 0) for p in phases) / total_w)
+    # PRJ-02: `construction_progress` = progres RESMI (fase berbobot, K-4); `units_progress` = rekap unit.
     await db.projects.update_one({"id": project_id, "org_id": org_id},
-                                 {"$set": {"construction_progress": overall,
-                                           "units_progress": units_progress,
-                                           "units_scheduled": len(scheds),
-                                           "updated_at": ts}})
+                                 {"$set": {"construction_progress": overall, **rekap}})
     return overall
 
 

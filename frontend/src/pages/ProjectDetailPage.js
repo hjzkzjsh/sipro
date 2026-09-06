@@ -78,7 +78,8 @@ export default function ProjectDetailPage() {
           { label: "Cluster", value: tree?.totals?.clusters || 0 },
           { label: "Blok", value: tree?.totals?.blocks || 0 },
           { label: "Unit", value: tree?.totals?.units || 0 },
-          { label: "Progres konstruksi", value: `${project.construction_progress || 0}%` },
+          { label: "Progres konstruksi (fase berbobot)", value: `${project.construction_progress || 0}%` },
+          { label: "Rata-rata progres unit", value: `${project.units_progress || 0}% · ${project.units_scheduled || 0}/${project.units_total ?? tree?.totals?.units ?? 0} unit terjadwal` },
         ]}
         actions={can("work_tasks", "create") ? (
           <CreateTaskDialog triggerLabel="Buat tugas" triggerVariant="outline"
@@ -93,8 +94,8 @@ export default function ProjectDetailPage() {
         <Kpi id="sold" label="Terjual (kumulatif)" value={soldLike} tone="primary" onOpen={openDrill}
           hint={`absorpsi ${stats.absorption_pct || 0}%`} />
         <Kpi id="value" label="Nilai unit" value={formatIDR(stats.value || 0)} tone="indigo" onOpen={openDrill} />
-        <Kpi id="progress" label="Progres konstruksi" value={`${project.construction_progress || 0}%`} tone="sky"
-          hint="rata-rata unit yang dibangun" onOpen={openDrill} />
+        <Kpi id="progress" label="Progres konstruksi (fase berbobot)" value={`${project.construction_progress || 0}%`} tone="sky"
+          hint={`rata-rata unit ${project.units_progress || 0}% (${project.units_scheduled || 0}/${project.units_total ?? tree?.totals?.units ?? 0} terjadwal)`} onOpen={openDrill} />
       </div>
       <DrilldownDialog target={drill} onOpenChange={(o) => { if (!o) setDrill(null); }} />
 

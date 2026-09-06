@@ -16,6 +16,7 @@ STAGE_ORDER = ("acquisition", "nurturing", "appointment", "booking", "won")
 QUALIFIED_STAGES = ("appointment", "booking", "won")
 WON_STAGES = ("booking", "won")
 LOST_STAGES = ("lost",)
+MIN_SOURCE_SAMPLE = 5   # BI-01: sumber dengan lead lebih sedikit tidak layak jadi "terbaik"
 
 
 def _now() -> datetime:
@@ -393,16 +394,23 @@ async def source_quality(*, org_id: str = ORG_ID, date_from: str = None, date_to
         row["won"] += 1 if lead.get("stage") in WON_STAGES else 0
         row["lost"] += 1 if lead.get("stage") in LOST_STAGES else 0
     for row in per_source.values():
-        row["win_pct"] = pct(row["won"], row["value"])
+        # BI-02: definisi win rate SAMA dengan LED-07 = menang / (menang + hilang).
+        row["win_pct"] = pct(row["won"], row["won"] + row["lost"])
+        row["conversion_pct"] = pct(row["won"], row["value"])   # menang / semua lead (nama berbeda)
         row["qualified_pct"] = pct(row["qualified"], row["value"])
-    best = max((r for r in per_source.values() if r["win_pct"] is not None),
-               key=lambda r: r["win_pct"], default=None)
+        # BI-01: sumber dengan sampel kecil tidak boleh memenangkan "terbaik".
+        row["eligible"] = row["value"] >= MIN_SOURCE_SAMPLE
+    best = max((r for r in per_source.values() if r["win_pct"] is not None and r["eligible"]),
+               key=lambda r: (r["win_pct"], r["won"]), default=None)
     return result("LED-13", best["win_pct"] if best else None, label="Sumber lead terbaik",
                   unit="pct",
                   breakdown=sorted(per_source.values(), key=lambda r: -r["value"]),
                   inputs={"sumber_terbaik": best["label"] if best else None,
-                          "lead": len(rows)},
-                  missing=["belum ada lead pada periode ini"] if not rows else None,
+                          "lead": len(rows), "sampel_minimum": MIN_SOURCE_SAMPLE},
+                  missing=(["belum ada lead pada periode ini"] if not rows else
+                           [f"belum ada sumber dengan ≥{MIN_SOURCE_SAMPLE} lead"] if best is None else None),
+                  coverage={"rows": sum(1 for r in per_source.values() if r["eligible"]),
+                            "total": len(per_source)} if rows else None,
                   drill="/leads")
 
 
@@ -494,7 +502,8 @@ METRICS = {
                "requires": ["leads.demography"], "drill": "/leads"},
     "LED-13": {"fn": source_quality, "label": "Sumber lead terbaik", "unit": "pct",
                "persona": "penjualan", "snapshot": True,
-               "formula": "funnel per source (masuk→terkualifikasi→menang)",
+               "formula": "win rate per source = menang / (menang + hilang), hanya source dengan ≥5 lead; "
+                          "funnel masuk→terkualifikasi→menang",
                "requires": ["leads"], "drill": "/leads"},
     "LED-14": {"fn": no_followup, "label": "Lead lewat SLA tanpa tindak lanjut",
                "unit": "count", "persona": "penjualan", "snapshot": True,

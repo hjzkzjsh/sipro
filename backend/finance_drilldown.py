@@ -58,9 +58,17 @@ async def drilldown(org: str, key: str, bucket: str = None) -> dict:
     org = org or ORG_ID
     rows, title, href_all = [], key, None
     if key == "ar_outstanding":
+        # FIN-01: definisi SAMA dengan kartu (`finance_engine.ar_aging`): sisa per termin
+        # (amount − paid_amount), bukan field `outstanding` invoice yang bisa basi.
         title, href_all = "Piutang (AR) belum lunas", f"{AR_BASE}&status=unpaid,partial"
-        for inv in await db.ar_invoices.find({"org_id": org, "status": {"$ne": "paid"}}, {"_id": 0}).to_list(2000):
-            rows.append(_ar_row(inv, inv.get("outstanding", 0)))
+        by = await _ar_by_bucket(org)
+        merged = {}
+        for bk in BUCKET_KEYS:
+            for r in by[bk]:
+                m = merged.setdefault(r["id"], {**r, "amount": 0, "subtitle": ""})
+                m["amount"] += r["amount"]
+                m["subtitle"] = (m["subtitle"] + " · " if m["subtitle"] else "") + r["subtitle"]
+        rows = list(merged.values())
     elif key == "ar_overdue":
         title, href_all = "Termin AR yang melewati jatuh tempo", f"{AR_BASE}&status=unpaid,partial&sort=created_at"
         by = await _ar_by_bucket(org)

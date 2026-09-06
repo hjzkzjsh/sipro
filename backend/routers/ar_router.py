@@ -229,8 +229,23 @@ async def invoice_pdf(deal_id: str, user: dict = Depends(require_permission("fin
             _ref_label("ar_status", it.get("status")),
         ])
     layout = await dl.get_layout(org, "INVOICE")  # DOC-02: tampilan invoice sendiri
+    import doc_script as ds
+    from datetime import datetime as _dt
+    buyer = deal.get("lead_name") or deal.get("customer_name") or inv.get("lead_name")
+    if not buyer and deal.get("lead_id"):
+        lead = await db.leads.find_one({"id": deal["lead_id"]}, {"_id": 0, "name": 1}) or {}
+        buyer = lead.get("name")
+    buyer = buyer or "-"
+    pending = sorted(str(it.get("due_date") or "")[:10] for it in inv.get("items", [])
+                     if it.get("status") != "paid" and (it.get("amount") or 0) > (it.get("paid_amount") or 0))
+    intro = await ds.intro_for(org, "INVOICE", {
+        "date": _dt.now().strftime("%d-%m-%Y"), "org_name": ORG_NAME, "customer_name": buyer,
+        "unit_code": deal.get("unit_code") or "-", "project_name": deal.get("project_name") or "",
+        "total": _idr(inv.get("total")), "paid": _idr(inv.get("paid")),
+        "outstanding": _idr(inv.get("outstanding")), "next_due": pending[0] if pending else "-",
+        "status": _ref_label("ar_status", inv.get("status"))}, use_default=True)
     subtitle = " · ".join(filter(None, [
-        f"Pembeli: {deal.get('lead_name') or deal.get('customer_name') or '-'}",
+        f"Pembeli: {buyer}",
         f"Unit: {deal.get('unit_code') or '-'}",
         f"Status: {_ref_label('ar_status', inv.get('status'))}",
         f"Sudah dibayar: {_idr(inv.get('paid'))}",
@@ -240,7 +255,8 @@ async def invoice_pdf(deal_id: str, user: dict = Depends(require_permission("fin
                           columns=["Termin", "Jatuh tempo", "Jumlah", "Dibayar", "Status"],
                           rows=rows, total_row=["TOTAL", "", _idr(inv.get("total")),
                                                 _idr(inv.get("paid")), ""],
-                          org_name=ORG_NAME, layout=layout,
+                          org_name=ORG_NAME, layout=layout, intro=intro,
+                          note="Invoice diterbitkan otomatis oleh SIPRO dari jadwal termin yang tercatat.",
                           images=await dl.images(org, layout))
     name = f"invoice-{(deal.get('unit_code') or deal_id).replace('/', '-')}"
     return Response(content=pdf, media_type="application/pdf",

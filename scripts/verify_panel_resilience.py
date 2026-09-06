@@ -259,9 +259,11 @@ def audit_server() -> None:
     for email in ("finance@sipro.co.id", "finlead@sipro.co.id"):
         h = login(email)
         if lead_id is None:
-            rows = requests.get(f"{BASE}/leads", headers=h, params={"limit": 1}, timeout=30)
+            rows = requests.get(f"{BASE}/leads", headers=h, params={"limit": 50}, timeout=30)
             data = rows.json().get("data") or []
-            lead_id = data[0]["id"] if data else None
+            # Bahan uji lingkup baris: lead yang BUKAN milik sales2 (dipakai D5 di bawah).
+            asing = [x for x in data if x.get("assigned_to") != "sales2@sipro.co.id"]
+            lead_id = (asing or data)[0]["id"] if data else None
         g = requests.get(f"{BASE}/appointments", headers=h, params={"lead_id": lead_id}, timeout=30)
         check(g.status_code == 200, f"{email} boleh GET /appointments", str(g.status_code))
         p = requests.post(f"{BASE}/appointments", headers=h,

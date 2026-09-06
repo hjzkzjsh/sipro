@@ -348,6 +348,21 @@ async def _sum(coll: str, q: dict, field: str) -> float:
     return round(sum(float(r.get(field) or 0) for r in rows), 2)
 
 
+async def _sync_with_drilldown(user: dict, cards: list) -> list:
+    """FIN-01/02: angka kartu = angka rinciannya. Kartu yang punya `drill_key` mengambil nilainya
+    dari mesin drill-down yang SAMA dengan dialog rincian, bukan query tandingan di sini."""
+    import kpi_drilldown as kd
+    for c in cards:
+        if not c.get("drill_key"):
+            continue
+        try:
+            d = await kd.drilldown(user, c["drill_key"], dict(c.get("drill_params") or {}))
+        except KeyError:
+            continue
+        c["value"] = (d.get("total") or 0) if c.get("format") == "idr" else d.get("count", 0)
+    return cards
+
+
 async def _kpis(user: dict, buckets: dict) -> list:
     """KPI Beranda per peran.
 
@@ -449,7 +464,7 @@ async def work_home(user: dict = Depends(require_permission("work_tasks", "view"
     """
     tasks = await _my_open_tasks(user)
     buckets = _bucket(tasks)
-    kpis = await _kpis(user, buckets)
+    kpis = await _sync_with_drilldown(user, await _kpis(user, buckets))
     org = user.get("org_id", ORG_ID)
     role = user.get("role")
     team = None

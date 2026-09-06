@@ -299,7 +299,8 @@ async def report_dataset(kind, org_id=ORG_ID) -> dict:
     if kind == "ar-aging":
         ag = await fe.ar_aging(org_id)
         rows = [[lbl, _rp(ag["buckets"][k])] for k, lbl in _BUCKET_LABELS]
-        return {"title": "Laporan Aging Piutang (AR)", "subtitle": f"DSO ~{ag['dso']} hari",
+        return {"title": "Laporan Aging Piutang (AR)",
+                "subtitle": f"Belum tertagih {ag['outstanding_pct']}% dari total tagihan {_rp(ag['total_value'])}",
                 "columns": ["Kategori Umur", "Nilai"], "rows": rows, "total_row": ["Total", _rp(ag["total"])]}
     if kind == "ap-aging":
         ag = await fe.ap_aging(org_id)

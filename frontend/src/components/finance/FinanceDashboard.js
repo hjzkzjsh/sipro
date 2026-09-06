@@ -51,7 +51,7 @@ export default function FinanceDashboard() {
       </p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <KpiButton id="ar_outstanding" onOpen={open} label="Piutang (AR) Outstanding" value={data.ar_outstanding} tone="primary"
-          format="idr" hint={`DSO ~${data.ar_dso} hari \u00b7 ${c.ar_invoices || 0} invoice`} />
+          format="idr" hint={`Belum tertagih ${data.ar_outstanding_pct ?? 0}% dari total tagihan \u00b7 ${c.ar_invoices || 0} invoice`} />
         <KpiButton id="ar_overdue" onOpen={open} label="AR Jatuh Tempo" value={data.ar_overdue} tone="rose"
           format="idr" hint="Melewati tanggal termin" />
         <KpiButton id="ap_outstanding" onOpen={open} label="Utang (AP) Outstanding" value={data.ap_outstanding} tone="amber"

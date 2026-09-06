@@ -55,6 +55,7 @@ async def _tasks(user, p):
     if sla == "breached":
         q.update({"sla_breached": True, "status": {"$in": list(wh.ACTIVE_STATES)}})
     rows = await db.tasks.find(q, {"_id": 0, "description": 0}).sort("due_date", 1).to_list(300)
+    count = await db.tasks.count_documents(q)
     label = {"overdue": "Tugas terlambat", "today": "Tugas hari ini", "review": "Menunggu verifikasi",
              "waiting": "Ditunda", "upcoming": "Mendatang"}.get(bucket, "Tugas")
     if sla == "breached":
@@ -65,7 +66,7 @@ async def _tasks(user, p):
              " · ".join(x for x in [t.get("assigned_to") or "belum bertuan",
                                     f"jatuh tempo {str(t.get('due_date') or '')[:10]}" if t.get("due_date") else ""] if x),
              status=t.get("status"), group="task_status", href=f"{base}&q={t.get('title') or ''}", task_id=t["id"])
-        for t in rows]
+        for t in rows], count
 
 
 async def _leads(user, p):
@@ -129,6 +130,7 @@ async def _deals(user, p):
     if p.get("mine") == "1":
         q["assigned_to"] = user.get("email")
     rows = await db.deals.find(q, {"_id": 0}).sort("updated_at", -1).to_list(300)
+    count = await db.deals.count_documents(q)
     lead_ids = [d.get("lead_id") for d in rows if d.get("lead_id")]
     names = {l["id"]: l.get("name") for l in await db.leads.find({"id": {"$in": lead_ids}}, {"_id": 0, "id": 1, "name": 1}).to_list(300)}
     base = f"/customers?hub=deal&status={','.join(statuses)}"
@@ -136,7 +138,7 @@ async def _deals(user, p):
         _row(d["id"], f"{d.get('unit_code') or '-'} · {names.get(d.get('lead_id')) or '-'}",
              d.get("assigned_to") or "", amount=d.get("price"), status=d.get("status"), group="deal_status",
              href=f"{base}&q={d.get('unit_code') or ''}")
-        for d in rows]
+        for d in rows], count
 
 
 async def _projects(user, p):

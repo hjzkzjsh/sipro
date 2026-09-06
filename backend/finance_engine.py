@@ -743,8 +743,9 @@ async def ar_aging(org_id=ORG_ID) -> dict:
         for it in inv.get("items", []):
             entries.append((it.get("due_date"), it["amount"] - it.get("paid_amount", 0)))
     agg = bucketize(entries)
-    dso = round(agg["total"] / max(total_value, 1) * 90)
-    return {**agg, "dso": dso, "total_value": total_value}
+    # FIN-03 (K-5): rumus lama `sisa/total×90` BUKAN DSO. Dinamai jujur: porsi belum tertagih.
+    outstanding_pct = round(agg["total"] / total_value * 100, 1) if total_value else 0.0
+    return {**agg, "outstanding_pct": outstanding_pct, "total_value": total_value}
 
 
 async def ap_aging(org_id=ORG_ID) -> dict:
@@ -764,7 +765,8 @@ async def finance_summary(org_id=ORG_ID) -> dict:
     revenue_recognized = sum(r.get("revenue", 0) for r in revs)
     ar_overdue = ar["buckets"]["1-30"] + ar["buckets"]["31-60"] + ar["buckets"]["61-90"] + ar["buckets"][">90"]
     return {
-        "ar_outstanding": ar["total"], "ar_buckets": ar["buckets"], "ar_dso": ar["dso"],
+        "ar_outstanding": ar["total"], "ar_buckets": ar["buckets"],
+        "ar_outstanding_pct": ar["outstanding_pct"], "ar_total_value": ar["total_value"],
         "ar_overdue": ar_overdue,
         "ap_outstanding": ap["total"], "ap_buckets": ap["buckets"], "ap_retention_held": ap["retention_held"],
         "contract_liability": contract_liability, "revenue_recognized": revenue_recognized,

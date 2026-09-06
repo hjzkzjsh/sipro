@@ -237,6 +237,10 @@ def validate_matrix(candidate: dict) -> list:
                 errors.append(f"Peran '{role}' (resource '{resource}') tidak dikenal.")
                 continue
             if role in FULL_ACCESS_ROLES:
+                # Baris bawaan yang dikirim balik apa adanya (mis. organizations.owner) bukan
+                # pembatasan — GET dan PUT harus saling menerima.
+                if perms == (DEFAULT_PERMISSIONS.get(resource) or {}).get(role):
+                    continue
                 errors.append(
                     f"Peran '{role}' selalu berakses penuh dan tidak bisa dibatasi dari "
                     "layar ini — mencabutnya akan mengunci semua orang keluar.")

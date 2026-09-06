@@ -26,6 +26,7 @@ import reference as ref
 import sequences as seq
 import settings_store as st
 import tax_ids as tid
+from core_utils import period_of  # noqa: F401 — CFG-01
 from core_utils import new_id, now_iso
 from db import db, ORG_ID
 from tax_faktur_export import ExportHold
@@ -49,11 +50,6 @@ COMPANY_AGENT_TYPES = {"broker_kantor", "mitra_korporat"}
 
 def _rp(n) -> str:
     return "Rp " + f"{int(n or 0):,}".replace(",", ".")
-
-
-def period_of(value) -> str:
-    s = str(value or "")
-    return s[:7] if len(s) >= 7 else None
 
 
 def tax_of(base, rate) -> int:

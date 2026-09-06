@@ -146,7 +146,7 @@ export default function ArPanel() {
   return (
     <div data-testid={FINANCE.arPanel} className="space-y-4">
       <AgingBuckets buckets={aging?.buckets}
-        title={`Aging Piutang · Total ${formatIDR(aging?.total || 0)} · DSO ~${aging?.dso || 0} hari`} />
+        title={`Aging Piutang · Total ${formatIDR(aging?.total || 0)} · belum tertagih ${aging?.outstanding_pct ?? 0}% dari total tagihan`} />
 
       <DataTable testId={FINANCE.arTable}
         testIds={{ row: FINANCE.arRow, pagination: DT.pagination }}

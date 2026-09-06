@@ -112,7 +112,7 @@ export default function ReportsPanel() {
     <div data-testid={FINANCE.reportsPanel} className="space-y-5">
       {summary ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <MetricCard label="AR Outstanding" value={summary.ar_outstanding} tone="primary" format="idr" hint={`DSO ~${summary.ar_dso} hari`} />
+          <MetricCard label="AR Outstanding" value={summary.ar_outstanding} tone="primary" format="idr" hint={`Belum tertagih ${summary.ar_outstanding_pct ?? 0}% dari total tagihan`} />
           <MetricCard label="AP Outstanding" value={summary.ap_outstanding} tone="amber" format="idr" />
           <MetricCard label="Kewajiban Kontrak" value={summary.contract_liability} tone="indigo" format="idr" />
           <MetricCard label="Pendapatan Diakui" value={summary.revenue_recognized} tone="emerald" format="idr" />

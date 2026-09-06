@@ -51,6 +51,29 @@ def today_iso_date() -> str:
     return now().date().isoformat()
 
 
+WIB = timezone(timedelta(hours=7))
+
+
+def period_of(value) -> str:
+    """Periode akuntansi 'YYYY-MM' dari tanggal/ISO datetime — SATU definisi (CFG-01).
+
+    Tanggal polos ('2026-08-31') dibaca apa adanya; stempel waktu dikonversi ke WIB dulu
+    ('2026-08-31T18:00:00+00:00' → 2026-09). Nilai kosong/tidak terbaca → None, bukan potongan
+    string yang kebetulan tujuh huruf."""
+    s = str(value or "").strip()
+    if not s:
+        return None
+    if len(s) <= 10:
+        return s[:7] if len(s) >= 7 and s[4] == "-" else None
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        return s[:7] if len(s) >= 7 and s[4] == "-" else None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(WIB).strftime("%Y-%m")
+
+
 def normalize_phone_e164(phone: str) -> str:
     """Best-effort E.164 normalization for Indonesian numbers (idempotent).
 

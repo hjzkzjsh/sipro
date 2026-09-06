@@ -253,7 +253,9 @@ async def next_doc_number(org: str, code: str, project: dict) -> str:
     doc_code = TEMPLATES.get(code, (None, None, code, None))[2]
     # Aturan PER JENIS (`docnum:SPR-KPR` dst.) menang; bila belum diubah → aturan keluarga
     # `docnum`; bila itu pun belum diubah → format bawaan owner ([CFG] docnum.*).
-    per_type = await numbering.effective_rule(org, f"docnum:{doc_code}")
+    per_type = (await numbering.effective_rule(org, f"docnum:{doc_code}")
+                if f"docnum:{doc_code}" in numbering.REGISTRY_BY_KEY
+                else {"overridden": False})
     rule = per_type if per_type["overridden"] else await numbering.effective_rule(org, "docnum")
     pcode = (project.get("code") or "").strip() or "UMUM"
     scope = f"docnum:{doc_code}"

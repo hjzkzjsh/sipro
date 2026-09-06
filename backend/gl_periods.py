@@ -12,11 +12,7 @@ Aturan (anti-manipulasi angka historis, tapi tetap jujur soal transaksi nyata):
 from datetime import datetime, timezone
 
 from db import db, ORG_ID
-
-
-def period_of(date_str) -> str:
-    """'2026-08-10T09:00:00+00:00' -> '2026-08'."""
-    return str(date_str or "")[:7]
+from core_utils import period_of  # noqa: F401 — CFG-01: satu definisi periode (WIB)
 
 
 def next_period(period: str) -> str:

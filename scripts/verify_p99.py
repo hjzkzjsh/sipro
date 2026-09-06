@@ -90,7 +90,8 @@ def bagian_t(sa):
     tab = read(FE / "components" / "docs" / "IssuedDocsTab.js")
     check("wa_send.route" in tab and "docSendWaRoute" in tab,
           "T9 layar Dokumen Terbit menyebut jalur kirim (sesi/template) kepada pemakai")
-    tp = read(FE / "components" / "omni" / "TemplatesPanel.js")
+    # Tahap 3 (WA-14): editor template pindah ke Pusat Konfigurasi › Template Meta.
+    tp = read(FE / "components" / "config" / "WaTemplateEditorDialog.js")
     check('options("wa_template_header")' in tp and "header_sample_handle" in tp,
           "T10 form template punya pilihan header dari SSOT + kolom contoh berkas")
 
