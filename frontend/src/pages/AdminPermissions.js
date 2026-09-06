@@ -26,12 +26,14 @@ import { ADMIN } from "@/constants/testIds";
  *    Kemampuan backend tanpa pintu di layar sama saja dengan tidak ada.
  */
 
+// Fallback bila server belum mengirim `action_meta` (SSOT: backend/rbac_labels.ACTION_META).
 const ACTION_LABEL = {
-  all: "semua", manage: "kelola", view: "lihat", view_all: "lihat semua",
-  view_own: "lihat sendiri", create: "buat", update: "ubah", delete: "hapus",
-  approve: "setujui", assign: "tugaskan", sign: "tanda tangan", verify: "verifikasi",
-  override: "terobos", cancel: "batalkan",
+  all: "Semua aksi", manage: "Kelola penuh", view: "Lihat", view_all: "Lihat semua",
+  view_own: "Lihat milik sendiri", create: "Buat", update: "Ubah", delete: "Hapus",
+  approve: "Setujui", assign: "Tugaskan", sign: "Tanda tangan", verify: "Verifikasi",
+  override: "Terobos aturan", cancel: "Batalkan",
 };
+const WEIGHT_CLS = { 1: "border-slate-200 bg-secondary", 2: "border-sky-200 bg-sky-50 text-sky-900", 3: "border-rose-200 bg-rose-50 text-rose-900" };
 
 const SOURCE_BADGE = {
   matrix: { text: "matriks", cls: "border-slate-300 bg-slate-100 text-slate-700" },
@@ -104,6 +106,10 @@ export default function AdminPermissions() {
     });
   }, [resources, server]);
   const labelOf = (r) => server?.resource_meta?.[r]?.label || r;
+  const actionLabel = (a) => server?.action_meta?.[a]?.label || ACTION_LABEL[a] || a;
+  const actionHelp = (a) => server?.action_meta?.[a]?.help || "";
+  const actionWeight = (a) => server?.action_meta?.[a]?.weight || 2;
+  const listActions = (arr) => arr.map(actionLabel).join(", ");
 
   /** Izin efektif hasil SUNTINGAN (bukan hanya jawaban server) — meniru `rbac._role_perms`
    *  supaya pratinjau di layar sama dengan yang akan ditegakkan backend setelah disimpan. */
@@ -285,6 +291,21 @@ export default function AdminPermissions() {
         </div>
       </div>
 
+      {server?.action_meta ? (
+        <details data-testid={ADMIN.permsActionLegend} className="rounded-lg border bg-card px-3 py-2 text-sm shadow-[var(--shadow-card)]">
+          <summary className="cursor-pointer font-medium">Arti setiap aksi ({Object.keys(server.action_meta).length}) — apa yang sebenarnya diizinkan</summary>
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            {Object.entries(server.action_meta).sort((a, b) => a[1].weight - b[1].weight).map(([code, m]) => (
+              <div key={code} data-testid={ADMIN.permsActionLegendRow} data-action={code} className="flex items-start gap-2 text-xs">
+                <span className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] ${WEIGHT_CLS[m.weight] || ""}`}>{m.label}</span>
+                <span className="text-muted-foreground">{m.help} <span className="font-mono text-[9px]">({code})</span></span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">Warna merah = keputusan wewenang (uang, kontrak, hak orang lain). Biru = mengubah data. Abu = hanya membaca.</p>
+        </details>
+      ) : null}
+
       {(server?.full_access_roles || []).length ? (
         <div data-testid={ADMIN.permsFullAccess}
           className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
@@ -304,10 +325,10 @@ export default function AdminPermissions() {
           <ul className="mt-1 space-y-0.5 text-[12px]">
             {changes.slice(0, 8).map((c) => (
               <li key={`${c.resource}-${c.role}`} data-testid={ADMIN.permsPendingRow}>
-                <span className="font-mono">{c.resource}</span> ({labelOf(c.resource)}) · {roleLabel(c.role)}:{" "}
-                {c.from === null ? "mengikuti bawaan" : (c.from.length ? c.from.map((a) => ACTION_LABEL[a] || a).join(", ") : "tidak boleh")}
+                <b>{labelOf(c.resource)}</b> <span className="font-mono text-[10px] text-muted-foreground">{c.resource}</span> · {roleLabel(c.role)}:{" "}
+                {c.from === null ? "mengikuti bawaan" : (c.from.length ? listActions(c.from) : "tidak boleh")}
                 {" → "}
-                <b>{c.to === null ? "mengikuti bawaan" : (c.to.length ? c.to.map((a) => ACTION_LABEL[a] || a).join(", ") : "tidak boleh")}</b>
+                <b>{c.to === null ? "mengikuti bawaan" : (c.to.length ? listActions(c.to) : "tidak boleh")}</b>
               </li>
             ))}
             {changes.length > 8 ? <li>…dan {changes.length - 8} lainnya</li> : null}
@@ -360,8 +381,9 @@ export default function AdminPermissions() {
                           {eff.perms.length ? (
                             <div className="flex flex-wrap gap-1">
                               {eff.perms.map((p) => (
-                                <span key={p} className="rounded border bg-secondary px-1.5 py-0.5 text-[10px]">
-                                  {ACTION_LABEL[p] || p}
+                                <span key={p} title={actionHelp(p)} data-action={p}
+                                  className={`rounded border px-1.5 py-0.5 text-[10px] ${WEIGHT_CLS[actionWeight(p)] || ""}`}>
+                                  {actionLabel(p)}
                                 </span>
                               ))}
                             </div>
@@ -387,7 +409,7 @@ export default function AdminPermissions() {
                           ) : null}
                           {eff.deniedByCode.length ? (
                             <p className="mt-1 text-[9px] uppercase text-rose-600">
-                              dilarang kode: {eff.deniedByCode.map((a) => ACTION_LABEL[a] || a).join(", ")}
+                              dilarang kode: {listActions(eff.deniedByCode)}
                             </p>
                           ) : null}
                         </button>
@@ -405,7 +427,7 @@ export default function AdminPermissions() {
                             ) : (
                               <>
                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                  {(server?.actions || []).map((a) => {
+                                  {[...(server?.actions || [])].sort((x, y) => actionWeight(x) - actionWeight(y)).map((a) => {
                                     const w = written(res, role);
                                     const checkedList = w === null ? eff.perms : w;
                                     const fromCode = ((server.code_grants?.[role] || {})[res] || []).includes(a);
@@ -418,7 +440,8 @@ export default function AdminPermissions() {
                                           disabled={blocked}
                                           checked={checkedList.includes(a)}
                                           onChange={() => toggle(res, role, a)} />
-                                        <span className="whitespace-nowrap">{ACTION_LABEL[a] || a}</span>
+                                        <span className="whitespace-nowrap" title={actionHelp(a)}>{actionLabel(a)}</span>
+                                        {actionWeight(a) === 3 ? <span className="rounded bg-rose-50 px-1 text-[8px] uppercase text-rose-700" title="Keputusan wewenang — beri dengan hati-hati">berat</span> : null}
                                         {fromCode ? (
                                           <span className="rounded border border-sky-300 bg-sky-50 px-1 text-[8px] uppercase text-sky-700">
                                             kode

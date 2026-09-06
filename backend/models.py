@@ -212,6 +212,10 @@ class WaTemplateCreate(BaseModel):
     header_sample_handle: Optional[str] = None
 
 
+class WaReminderMappingIn(BaseModel):
+    mapping: Dict[str, str]   # {kind pengingat: template_code}
+
+
 class WaTemplateUpdate(BaseModel):
     name: Optional[str] = None
     category: ref.WaTemplateCategory = None

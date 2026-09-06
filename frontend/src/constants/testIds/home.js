@@ -120,6 +120,8 @@ export const ADMIN = {
   permsPending: "admin-permissions-pending",
   permsPendingRow: "admin-permissions-pending-row",
   permsFullAccess: "admin-permissions-full-access",
+  permsActionLegend: "admin-permissions-action-legend",
+  permsActionLegendRow: "admin-permissions-action-legend-row",
   permsReadonly: "admin-permissions-readonly",
   permsEmpty: "admin-permissions-empty",
   orgsPage: "admin-orgs-page",

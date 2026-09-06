@@ -8,7 +8,7 @@ from rbac import (require_permission, get_matrix, DEFAULT_PERMISSIONS, ALL_ROLES
                   effective_matrix, validate_matrix, KNOWN_ACTIONS, FULL_ACCESS_ROLES,
                   ROLE_INHERITS, ROLE_DENY, ROLE_GRANTS)
 from models import UserCreate, UserUpdate, PermissionUpdate
-from rbac_labels import resource_meta, GROUP_ORDER
+from rbac_labels import resource_meta, action_meta, GROUP_ORDER
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -86,6 +86,7 @@ async def get_permissions(user: dict = Depends(require_permission("permissions",
         "roles": ALL_ROLES,
         "resources": list(DEFAULT_PERMISSIONS.keys()),
         "resource_meta": resource_meta(DEFAULT_PERMISSIONS.keys()),
+        "action_meta": action_meta(KNOWN_ACTIONS),
         "group_order": GROUP_ORDER,
         "actions": KNOWN_ACTIONS,
         "defaults": DEFAULT_PERMISSIONS,

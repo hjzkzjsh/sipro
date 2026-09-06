@@ -51,6 +51,12 @@ async def ensure_reminder_templates(org_id: str, extra: list = None) -> int:
     otomatis punya template yang isinya sesuai jenisnya sejak hari pertama."""
     ts = now_iso()
     made = 0
+    # WA-07: dua template bawaan lama salah kategori (sapaan & info harga = MARKETING); perbaiki
+    # data yang sudah ter-seed supaya nomor opt-out tidak lagi menerimanya.
+    await db.wa_templates.update_many(
+        {"org_id": org_id, "code": {"$in": ["welcome", "price_info"]}, "category": "utility",
+         "created_by": {"$in": ["seed", "system", None]}},
+        {"$set": {"category": "marketing", "updated_at": ts}})
     for code, name, cat, body, variables in list(extra or []) + REMINDER_TEMPLATES:
         res = await db.wa_templates.update_one(
             {"org_id": org_id, "code": code},

@@ -13,10 +13,14 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 
 import reference as ref
+import settings_store as cfg
+import wa_gateway as gw
+import wa_template_governance as gov
 from db import db, ORG_ID
 from core_utils import new_id, now_iso, serialize_doc, parse_pagination
 from rbac import require_permission
 from models import (AutomationRuleCreate, AutomationRuleUpdate, WaTemplateCreate,
+                    WaReminderMappingIn,
                     WaTemplateUpdate, ChannelCreate, ChannelUpdate)
 
 router = APIRouter(tags=["omnichannel"])
@@ -130,7 +134,49 @@ async def list_templates(category: str = "",
     if category:
         q["category"] = category
     rows = await db.wa_templates.find(q, {"_id": 0}).sort("created_at", -1).to_list(200)
+    usage = await gov.usage_map(org)
+    for r in rows:
+        r["used_by"] = usage.get(r.get("code"), [])
+        r["hints"] = gov.category_hints(r.get("body"), r.get("category"))
     return {"data": serialize_doc(rows), "total": len(rows)}
+
+
+@router.get("/wa-templates/reminder-mapping")
+async def get_reminder_mapping(user: dict = Depends(require_permission("wa_templates", "view"))):
+    """Template mana untuk pengingat apa — satu tempat (WA-14)."""
+    org = user.get("org_id", ORG_ID)
+    mapping = await gov.reminder_mapping(org)
+    codes = {t["code"]: t for t in await db.wa_templates.find({"org_id": org}, {"_id": 0, "code": 1, "name": 1, "status": 1, "meta_status": 1}).to_list(300)}
+    rows = []
+    for kind, code in mapping.items():
+        t = codes.get(code)
+        rows.append({"kind": kind, "label": gov.REMINDER_KIND_META[kind][0], "help": gov.REMINDER_KIND_META[kind][1],
+                     "setting_key": gov.TEMPLATE_KEYS[kind], "template_code": code,
+                     "template_name": (t or {}).get("name"), "template_status": (t or {}).get("status"),
+                     "meta_status": (t or {}).get("meta_status"), "missing": t is None})
+    return {"data": rows}
+
+
+@router.put("/wa-templates/reminder-mapping")
+async def put_reminder_mapping(p: WaReminderMappingIn,
+                               user: dict = Depends(require_permission("wa_templates", "manage"))):
+    org = user.get("org_id", ORG_ID)
+    live = (await gw.get_config(org))["effective_mode"] == "live"
+    changed = []
+    for kind, code in p.mapping.items():
+        if kind not in gov.TEMPLATE_KEYS:
+            raise HTTPException(400, f"Jenis pengingat '{kind}' tidak dikenal.")
+        t = await db.wa_templates.find_one({"org_id": org, "code": code}, {"_id": 0})
+        if not t:
+            raise HTTPException(400, f"Template '{code}' tidak ada.")
+        if t.get("status") != "approved":
+            raise HTTPException(400, f"Template '{t['name']}' belum disetujui ({t.get('status')}); pengingat hanya boleh memakai template APPROVED.")
+        if live and t.get("meta_status") != "APPROVED":
+            raise HTTPException(400, f"Mode LIVE: template '{t['name']}' belum APPROVED di Meta ({t.get('meta_status')}).")
+        await cfg.set_value(gov.TEMPLATE_KEYS[kind], code, actor=user.get("email"), org_id=org,
+                            reason="Pemetaan pengingat dari layar Template WA")
+        changed.append(kind)
+    return {"data": await gov.reminder_mapping(org), "changed": changed}
 
 
 @router.post("/wa-templates")
@@ -138,8 +184,6 @@ async def create_template(p: WaTemplateCreate,
                           user: dict = Depends(require_permission("wa_templates", "manage"))):
     org = user.get("org_id", ORG_ID)
     code = _slug(p.name)
-    if await db.wa_templates.find_one({"org_id": org, "code": code}):
-        code = f"{code}_{new_id()[:4]}"
     ts = now_iso()
     import wa_gateway as gw
     import wa_templates_meta as wtm
@@ -149,6 +193,11 @@ async def create_template(p: WaTemplateCreate,
     salah = wtm.validate_variables(p.body, p.variables, p.header_text)
     if salah:
         raise HTTPException(400, salah)
+    dup = await db.wa_templates.find_one({"org_id": org, "code": code}, {"_id": 0, "name": 1})
+    if dup:
+        # WA-09: dulu diam-diam jadi `promo_a1b2`; sekarang jujur.
+        raise HTTPException(409, f"Kode '{code}' sudah dipakai template '{dup['name']}'. Pilih nama lain "
+                                 "yang lebih spesifik (mis. tambahkan tujuan atau bulan).")
     doc = {
         "id": new_id(), "org_id": org, "code": code, "name": p.name, "category": p.category,
         "language": p.language, "body": p.body, "variables": p.variables,
@@ -164,7 +213,7 @@ async def create_template(p: WaTemplateCreate,
         doc["components"] = p.components
     await db.wa_templates.insert_one(doc)
     doc.pop("_id", None)
-    return {"data": serialize_doc(doc)}
+    return {"data": serialize_doc(doc), "warnings": gov.category_hints(doc.get("body"), doc.get("category"))}
 
 
 @router.put("/wa-templates/{tmpl_id}")
@@ -180,6 +229,17 @@ async def update_template(tmpl_id: str, p: WaTemplateUpdate,
         v = getattr(p, f)
         if v is not None:
             s[f] = v
+    # WA-05: `approved` hanya boleh datang dari Meta (sync/webhook) atau pembuatan di mode simulasi.
+    if s.get("status") == "approved" and cur.get("status") != "approved":
+        raise HTTPException(400, "Status 'approved' tidak bisa diberikan dari layar. Ajukan template ke Meta "
+                                 "lalu tarik statusnya; di mode simulasi template baru sudah otomatis approved.")
+    # WA-06: setelah Meta menyetujui, isi & struktur parameter beku — perubahan = versi/template baru.
+    if cur.get("meta_status") == "APPROVED":
+        beku = gov.frozen_fields_changed(cur, s)
+        if beku:
+            raise HTTPException(400, "Template sudah APPROVED di Meta; %s tidak boleh diubah karena parameter "
+                                     "yang dikirim harus sama dengan yang disetujui. Buat template baru (versi "
+                                     "berikutnya) lalu ajukan ke Meta." % ", ".join(beku))
     if s.get("header_type") and s["header_type"] not in ref.values("wa_template_header"):
         raise HTTPException(400, "header_type tidak valid.")
     if any(k in s for k in ("body", "variables", "header_text")):
@@ -190,7 +250,7 @@ async def update_template(tmpl_id: str, p: WaTemplateUpdate,
             raise HTTPException(400, salah)
     await db.wa_templates.update_one({"id": tmpl_id, "org_id": org}, {"$set": s})
     fresh = await db.wa_templates.find_one({"id": tmpl_id, "org_id": org}, {"_id": 0})
-    return {"data": serialize_doc(fresh)}
+    return {"data": serialize_doc(fresh), "warnings": gov.category_hints(fresh.get("body"), fresh.get("category"))}
 
 
 @router.post("/wa-templates/sync")
@@ -231,6 +291,14 @@ async def template_meta_preview(tmpl_id: str, user: dict = Depends(require_permi
 async def delete_template(tmpl_id: str,
                           user: dict = Depends(require_permission("wa_templates", "manage"))):
     org = user.get("org_id", ORG_ID)
+    cur = await db.wa_templates.find_one({"id": tmpl_id, "org_id": org}, {"_id": 0, "code": 1, "name": 1})
+    if not cur:
+        raise HTTPException(404, "Template tidak ditemukan")
+    # WA-08: template yang masih dirujuk tidak boleh hilang diam-diam; sebutkan DI MANA ia dipakai.
+    used = (await gov.usage_map(org)).get(cur.get("code"), [])
+    if used:
+        raise HTTPException(409, "Template '%s' masih dipakai oleh: %s. Ganti rujukannya dulu, baru hapus."
+                            % (cur["name"], "; ".join(u["label"] for u in used[:6])))
     res = await db.wa_templates.delete_one({"id": tmpl_id, "org_id": org})
     if not res.deleted_count:
         raise HTTPException(404, "Template tidak ditemukan")

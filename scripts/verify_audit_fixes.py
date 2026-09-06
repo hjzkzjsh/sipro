@@ -83,7 +83,7 @@ tp = read(F / "components" / "omni" / "TemplatesPanel.js")
 check('t.status === "approved" ? "approved" : "pending"' not in tp, "WA-12",
       "TemplatesPanel tidak lagi memetakan rejected → pending")
 check("meta_reason" in tp, "WA-12", "TemplatesPanel menampilkan alasan penolakan Meta")
-check("examples" in tp, "WA-13", "TemplatesPanel punya kolom contoh nilai per variabel")
+check("examples" in read(F / "components" / "config" / "WaTemplateEditorDialog.js"), "WA-13", "editor template (Pusat Konfigurasi) punya kolom contoh nilai per variabel")
 
 # ---- Fitur: tahapan progres pembangunan
 check((B / "phase_templates.py").exists() and "phases/apply" in read(B / "routers" / "phase_template_router.py"),
@@ -108,6 +108,34 @@ check("SurveyStepper" in spn and "current_stage" in spn, "SURVEY-CFG", "form sur
 gates = read(ROOT / "scripts" / "run_all_gates.sh")
 check("verify_field_names.py" in gates and "verify_audit_fixes.py" in gates, "GATE",
       "kedua gate terdaftar di run_all_gates.sh")
+
+# ---- Tahap 3 (WA-05..09, WA-14) & Tahap 4 (RBAC-02/03) — 2026-09-06 sesi 2
+gov_ok = (B / "wa_template_governance.py").exists()
+check(gov_ok, "WA-14", "modul tata kelola template (usage_map, reminder_mapping, category_hints) ada")
+check("/wa-templates/reminder-mapping" in omni and "gov.usage_map(" in omni, "WA-14",
+      "endpoint pemetaan pengingat & pemakaian template ada di satu router")
+check("Status 'approved' tidak bisa diberikan dari layar" in omni, "WA-05", "PUT status=approved ditolak")
+check("frozen_fields_changed" in omni, "WA-06", "isi template APPROVED Meta dibekukan")
+check("category_hints" in omni, "WA-07", "peringatan kategori↔isi saat simpan (tidak memblokir)")
+check("masih dipakai oleh" in omni, "WA-08", "hapus template terpakai → 409 dengan lokasi pemakaian")
+check("sudah dipakai template" in omni and "_{new_id()[:4]}" not in omni, "WA-09",
+      "kode duplikat → 409, bukan sufiks acak diam-diam")
+s22 = read(B / "seed_phase22.py")
+check('("welcome", "Sapaan Awal", "marketing"' in s22 and '("price_info", "Info Harga", "marketing"' in s22,
+      "WA-07", "seed welcome/price_info berkategori marketing")
+check("api.post(" not in tp and "api.put(" not in tp and "api.delete(" not in tp, "WA-14",
+      "layar Lead WA › Template hanya membaca (tidak lagi membuat/mengubah/menghapus)")
+meta_panel = read(F / "components" / "config" / "WaTemplateMetaPanel.js")
+check("WaTemplateEditorDialog" in meta_panel and "WaReminderMappingCard" in meta_panel, "WA-14",
+      "Pusat Konfigurasi › Template = isi + status Meta + pemetaan pengingat dalam satu layar")
+import rbac  # noqa: E402
+import rbac_labels as rl  # noqa: E402
+missing = [a for a in rbac.KNOWN_ACTIONS if a not in rl.ACTION_META]
+check(not missing, "RBAC-02", f"setiap aksi KNOWN_ACTIONS punya ACTION_META (kurang: {missing})")
+check('"action_meta"' in read(B / "routers" / "admin_router.py"), "RBAC-02", "GET /admin/permissions mengirim action_meta")
+ap = read(F / "pages" / "AdminPermissions.js")
+check("server?.action_meta" in ap and "permsActionLegend" in ap, "RBAC-02", "layar Hak Akses memakai label & legenda aksi dari server")
+check('<b>{labelOf(c.resource)}</b>' in ap, "RBAC-03", "label manusia tampil lebih dulu dari kode mesin")
 
 print("-" * 60)
 if errors:

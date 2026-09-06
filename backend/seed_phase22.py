@@ -25,10 +25,10 @@ async def seed_omnichannel(org_id, ts, ctx):
 
     # 2) Pre-approved WhatsApp templates (used to (re)open the 24h session window).
     templates = [
-        ("welcome", "Sapaan Awal", "utility",
+        ("welcome", "Sapaan Awal", "marketing",
          "Halo {{name}}, terima kasih sudah menghubungi PT SIPRO Land. Ada yang bisa kami bantu "
          "terkait unit hunian Anda?", ["name"]),
-        ("price_info", "Info Harga", "utility",
+        ("price_info", "Info Harga", "marketing",
          "Untuk unit Tipe 45 di Cluster Asri, harga mulai Rp 850 juta (skema KPR & cash bertahap "
          "tersedia). Mau kami jadwalkan survey lokasi?", []),
         ("appointment_reminder", "Pengingat Survey", "utility",

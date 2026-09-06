@@ -81,6 +81,37 @@ RESOURCE_META = {
 GROUP_ORDER = ["CRM", "Penjualan", "Marketing", "Proyek", "Keuangan", "Akuntansi", "Dokumen",
                "Kerja", "Konfigurasi", "Admin"]
 
+# Aksi RBAC dalam bahasa manusia (audit RBAC-02). (label, penjelasan satu kalimat, bobot risiko)
+# Bobot: 1 = membaca, 2 = mengubah data sendiri/timnya, 3 = keputusan wewenang (uang, kontrak,
+# hak orang lain). Layar mengurutkan & mewarnai berdasarkan bobot supaya `override` tidak
+# terlihat sama "ringannya" dengan `view`.
+ACTION_META = {
+    "view": ("Lihat", "Membuka dan membaca data pada modul ini.", 1),
+    "view_all": ("Lihat semua", "Melihat data milik semua orang/proyek, bukan hanya miliknya sendiri.", 1),
+    "view_own": ("Lihat milik sendiri", "Hanya melihat baris yang ditugaskan kepadanya (lead/proyeknya).", 1),
+    "create": ("Buat", "Menambah data baru pada modul ini.", 2),
+    "update": ("Ubah", "Menyunting data yang sudah ada.", 2),
+    "delete": ("Hapus", "Menghapus data — tidak bisa dibatalkan kecuali ada arsip.", 3),
+    "assign": ("Tugaskan", "Menetapkan/memindahkan penanggung jawab (mis. lead ke sales lain).", 2),
+    "approve": ("Setujui", "Menyetujui/menolak pengajuan resmi: pembayaran, klaim, dokumen, progres.", 3),
+    "override": ("Terobos aturan", "Melewati batas yang ditetapkan sistem (harga di bawah floor, kunci periode). "
+                 "Wewenang paling berat — beri hanya ke direksi/manajer.", 3),
+    "manage": ("Kelola penuh", "Mengatur konfigurasi modul ini (aturan, template, pengguna).", 3),
+    "sign": ("Tanda tangan", "Menandatangani dokumen resmi atas nama perusahaan.", 3),
+    "verify": ("Verifikasi", "Memeriksa dan mengesahkan berkas/data yang diunggah orang lain.", 2),
+    "cancel": ("Batalkan", "Membatalkan transaksi/perjanjian yang sudah berjalan.", 3),
+    "all": ("Semua aksi", "Setiap aksi pada modul ini, termasuk yang ditambahkan di masa depan.", 3),
+}
+
+
+def action_meta(actions) -> dict:
+    """{code: {label, help, weight}} — kode tanpa meta tampil apa adanya (dan gagal di gate)."""
+    out = {}
+    for a in actions:
+        label, help_, weight = ACTION_META.get(a, (a, "", 2))
+        out[a] = {"label": label, "help": help_, "weight": weight}
+    return out
+
 
 def resource_meta(resources) -> dict:
     """{code: {label, group}} untuk semua resource; yang belum berlabel tampil apa adanya."""
