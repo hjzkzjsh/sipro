@@ -52,8 +52,10 @@ Keputusan default yang dipakai (belum dikonfirmasi pemilik): K-1 satukan templat
 `ux_audit` (UI-01, 4 testid statis), `audit_forms_deep` (E5 `legal/DeletionRequestsTable.js`), `verify_ia_v2`/`verify_build_hub`/`verify_budget_target` (pintu sidebar `/legal` tidak ada di ledger docs/v2/40), `verify_33` (data TRM/G51/6283), `verify_p66`/`verify_contract_legal_docgen` (PDF layout), `verify_p67` (K1 page-title), `verify_p75-78`, `verify_cancellation_refund` (akun finance_manager `finlead` tidak di-seed), `verify_panel_resilience`.
 
 ### Backlog berikutnya (Tahap 3–7 audit)
-- Tahap 3: satukan layar template WA di Pusat Konfigurasi (WA-14, WA-05..09, WA-07).
-- Tahap 4: `ACTION_META` label aksi RBAC (RBAC-02/03); peran dinamis bila K-2 = ya.
-- Tahap 5: DOC-02 layout INVOICE sendiri, CFG-03/04 SelectItem→SSOT, UI-01/02.
+- ✅ Tahap 3: satukan layar template WA di Pusat Konfigurasi (WA-14, WA-05..09, WA-07) — iteration_2.
+- ✅ Tahap 4: `ACTION_META` label aksi RBAC (RBAC-02/03) — iteration_2. Peran dinamis bila K-2 = ya (belum).
+- ✅ Tahap 5 (2026-09-06, iteration_3): DOC-02 target `INVOICE` sendiri (kind table, kategori penagihan; dipakai PDF invoice AR & invoice biaya all-in, pratinjau contoh invoice); CFG-03/04 semua setting enum wajib `ref_group` → `option_labels` dari `/api/reference` (grup baru `reference_p100.py`: lead_won_trigger, slik_gate, attribution_model, docnum_scope, docnum_reset_policy, deletion_request_status; `handover_settlement_policy` dipakai ulang), dropdown Aturan Bisnis menampilkan label + kode kecil; UI-02 `DeletionRequestsTable` pakai registry (gate `audit_forms_deep` E5 hijau); UI-01 testid statis di `.map()` diberi pembeda (`ux_audit` hijau). WA-09 tambahan: `WaTemplateCreate.code` opsional dihormati (test `test_crud_header_type` hijau). Tes: `tests/test_audit_tahap5_doc_cfg_ui.py`.
 - Tahap 6: CFG-01 satu `period_of` + WIB, FIN-01/02/03, PRJ-01/02 (pembagi = semua unit), BI-01/02.
 - Bersihkan gate merah pra-eksisting di atas.
+- Lingkungan: `backend/.env` butuh `JWT_SECRET`, `SEED_DEMO_USERS=true`, `BACKUP_DIR`; `emergentintegrations` dipasang terpisah (konflik `litellm` pin di requirements.txt).
+- Pre-existing gagal karena data lingkungan (bukan regresi): `test_iter149_legal.py::test_admin_update_user`, `test_p97_template_compliance.py::test_opt_out_blocks_marketing_not_utility`.

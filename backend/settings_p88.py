@@ -6,10 +6,13 @@ digabung ke `DEFAULTS` oleh `settings_store` (SSOT tetap satu registry).
 
 
 def _d(key, value, type_, group, label, help_, *, impact="", sensitive=False, minimum=None,
-       maximum=None, options=None, src="SISTEM"):
+       maximum=None, options=None, src="SISTEM", ref_group=None):
+    if ref_group:
+        import reference as _ref
+        options = list(_ref.values(ref_group))
     return {
         "key": key, "value": value, "type": type_, "group": group, "label": label,
-        "help": help_, "impact": impact, "sensitive": sensitive, "min": minimum,
+        "help": help_, "impact": impact, "sensitive": sensitive, "min": minimum, "ref_group": ref_group,
         "max": maximum, "options": options or [], "source": src,
     }
 
@@ -32,7 +35,7 @@ DEFAULTS_P88: dict = {d["key"]: d for d in [
         "minimal_persen: menahan hanya bila pembayaran < persen minimum. "
         "peringatan: sisa tagihan hanya menjadi PERINGATAN — BAST bisa terbit tanpa terobosan."),
        impact="Melonggarkan kebijakan ini berarti kunci bisa diserahkan sebelum rumah lunas.",
-       sensitive=True, options=["wajib_lunas", "minimal_persen", "peringatan"], src="DOC"),
+       sensitive=True, ref_group="handover_settlement_policy", src="DOC"),
     _d("handover.settlement_min_paid_pct", 90, "pct", "garansi",
        "Minimum terbayar sebelum BAST (%)",
        "Dipakai hanya bila kebijakan = minimal_persen.", sensitive=True, minimum=0, maximum=100),

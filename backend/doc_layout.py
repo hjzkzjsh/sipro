@@ -66,6 +66,8 @@ TARGETS = {
     "BA_OPNAME": ("Berita Acara Opname pekerjaan subkontraktor", "letter"),
     "PUNCHLIST": ("Berita Acara Pemeriksaan & Punch List", "letter"),
     "LAPORAN": ("Laporan tabel (keuangan, denda, refund, mingguan)", "table"),
+    # DOC-02 — invoice pembeli dulu meminjam gaya LAPORAN; kini punya tampilan & naskah sendiri.
+    "INVOICE": ("Invoice / tagihan pembeli (termin & biaya transaksi)", "table"),
 }
 
 # Baris biaya standar SPR — kode SAMA dengan `contracts_engine.build_breakdown`.

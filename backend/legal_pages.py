@@ -7,13 +7,14 @@ import random
 import string
 from datetime import datetime, timezone
 
+import reference as _ref
 from db import db, ORG_ID
 from core_utils import new_id, now_iso
 from legal_templates import TEMPLATES
 
 PAGES = ("privacy", "terms", "deletion")
 LANGS = ("id", "en")
-DELETION_STATUSES = ("open", "in_progress", "done", "rejected")
+DELETION_STATUSES = _ref.values("deletion_request_status")  # SSOT: reference_p100
 
 DEFAULT_IDENTITY = {
     "company_name": "PT. HARMONY CAHAYA LAND",

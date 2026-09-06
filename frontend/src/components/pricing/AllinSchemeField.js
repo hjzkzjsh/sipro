@@ -92,7 +92,7 @@ export default function AllinSchemeField({ value, onChange, unitId, price }) {
                 const comp = components.find((x) => x.code === c);
                 setItem(i, { code: c, treatment: comp?.default_treatment || it.treatment });
               }}>
-                <SelectTrigger data-testid="allin-manual-code" className="bg-background"><SelectValue placeholder="Komponen (dari master)" /></SelectTrigger>
+                <SelectTrigger data-testid="allin-manual-code" data-row={i} aria-label={`Komponen baris ${i + 1}`} className="bg-background"><SelectValue placeholder="Komponen (dari master)" /></SelectTrigger>
                 <SelectContent>
                   {components.map((c) => <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>)}
                 </SelectContent>

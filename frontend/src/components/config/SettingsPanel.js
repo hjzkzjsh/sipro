@@ -30,6 +30,7 @@ function valueText(row) {
   if (row.type === "bool") return v ? "Aktif" : "Tidak aktif";
   if (row.type === "money") return new Intl.NumberFormat("id-ID").format(Number(v) || 0);
   if (row.type === "pct") return `${v}%`;
+  if (row.type === "enum") return row.option_labels?.[v] || String(v);
   if (Array.isArray(v)) return v.length ? v.join(", ") : "(kosong)";
   if (v && typeof v === "object") return JSON.stringify(v);
   return String(v);
@@ -119,7 +120,12 @@ export default function SettingsPanel() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(row.options || []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+            {(row.options || []).map((o) => (
+              <SelectItem key={o} value={o} data-testid={`config-enum-option-${o}`}>
+                {row.option_labels?.[o] || labelOf(row.ref_group, o)}
+                <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">{o}</span>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       );

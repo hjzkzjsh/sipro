@@ -29,11 +29,17 @@ _TTL = 3.0
 
 
 def _d(key, value, type_, group, label, help_, *, impact="", sensitive=False, minimum=None,
-       maximum=None, options=None, src="SISTEM"):
+       maximum=None, options=None, src="SISTEM", ref_group=None):
+    # CFG-03: enum WAJIB menunjuk grup registry (/api/reference) supaya label pilihan satu sumber.
+    if type_ == "enum" and not ref_group:
+        raise ValueError(f"Setting enum '{key}' harus punya ref_group")
+    if ref_group:
+        import reference as _ref
+        options = list(_ref.values(ref_group))
     return {
         "key": key, "value": value, "type": type_, "group": group, "label": label,
         "help": help_, "impact": impact, "sensitive": sensitive, "min": minimum,
-        "max": maximum, "options": options or [], "source": src,
+        "max": maximum, "options": options or [], "source": src, "ref_group": ref_group,
     }
 
 
@@ -60,7 +66,7 @@ DEFAULTS: dict = {d["key"]: d for d in [
     _d("lead.won_trigger", "spr_signed", "enum", "lead", "Pemicu lead menjadi Customer",
        "Peristiwa yang mengubah lead menjadi customer (akhir lifecycle lead).",
        impact="Menentukan kapan proses legal berpindah ke domain Customer.",
-       sensitive=True, options=["booking_fee_verified", "spr_signed", "ppjb_signed", "ajb_signed"]),
+       sensitive=True, ref_group="lead_won_trigger"),
     # ============ SLA & umur tahap (Fase 41) ============
     # Ambang ini DULU angka mati di komponen frontend (72 jam di daftar Lead, 48 di Tugas &
     # Komplain, 168 di Deal, 336 di Pembeli, 720 di AR). Sekarang satu tempat, dan
@@ -102,7 +108,7 @@ DEFAULTS: dict = {d["key"]: d for d in [
        sensitive=True),
     _d("slik.gate", "before_spr", "enum", "lead", "Kapan BI/SLIK checking diwajibkan",
        "BI Checking berjalan di menu terpisah; ini hanya menentukan titik wajibnya.",
-       options=["off", "before_booking", "before_spr"], sensitive=True),
+       ref_group="slik_gate", sensitive=True),
     # ============ booking fee ============
     _d("booking_fee.default_amount", 1000000, "money", "booking_fee",
        "Booking fee default (Rp)",
@@ -257,7 +263,7 @@ DEFAULTS: dict = {d["key"]: d for d in [
        "Lead & fee ditolak bila kontrak mitra kedaluwarsa.", sensitive=True),
     _d("partner.attribution_model", "first_touch", "enum", "mitra", "Model atribusi lead mitra",
        "Menentukan mitra mana yang berhak atas lead yang dikirim lebih dari satu mitra.",
-       options=["first_touch", "last_touch", "manual_review"], sensitive=True),
+       ref_group="attribution_model", sensitive=True),
     _d("partner.lead_dedup_window_days", 30, "int", "mitra", "Jendela dedup lead mitra (hari)",
        "Lead sama dalam rentang ini dianggap milik mitra pertama.", minimum=1, maximum=365),
     _d("partner.auto_create_fee", True, "bool", "mitra", "Buat tagihan fee otomatis",
@@ -275,10 +281,10 @@ DEFAULTS: dict = {d["key"]: d for d in [
     # ============ dokumen ============
     _d("docnum.scope", "per_project", "enum", "dokumen", "Cakupan nomor dokumen",
        "Counter nomor dokumen dihitung global, per proyek, atau per proyek per bulan.",
-       options=["global", "per_project", "per_project_month"], sensitive=True),
+       ref_group="docnum_scope", sensitive=True),
     _d("docnum.reset_policy", "yearly", "enum", "dokumen", "Reset nomor dokumen",
        "Kapan counter nomor dokumen dimulai dari 1 lagi.",
-       options=["never", "yearly", "monthly"], sensitive=True),
+       ref_group="docnum_reset_policy", sensitive=True),
     _d("docnum.width", 4, "int", "dokumen", "Lebar digit nomor",
        "Contoh lebar 4 = 0001; dokumen contoh owner memakai 4 digit (5201).",
        minimum=1, maximum=8),
@@ -304,7 +310,7 @@ DEFAULTS: dict = {d["key"]: d for d in [
        minimum=50, maximum=100),
     _d("target.default_method", "linear_remaining", "enum", "anggaran", "Metode target default",
        "Metode perhitungan target bulanan untuk proyek baru.",
-       options=["linear_remaining", "s_curve", "manual", "velocity_forecast", "revenue_first"]),
+       ref_group="target_method"),
     # ============ konstruksi & izin ============
     _d("survey.checklist_items",
        ["Akses jalan menuju lokasi", "Kondisi tanah & kontur", "Batas kavling & patok jelas",
@@ -629,6 +635,9 @@ async def listing(*, org_id: str = ORG_ID, group: str = None, project_id: str = 
         elif ("org", org_id) in by:
             row, origin = by[("org", org_id)], "org"
         item = dict(spec)
+        if spec.get("ref_group"):
+            import reference as _ref
+            item["option_labels"] = _ref.labels(spec["ref_group"])
         item["group_label"] = GROUP_LABELS.get(spec["group"], spec["group"])
         item["default_value"] = spec["value"]
         item["value"] = row["value"] if row else spec["value"]

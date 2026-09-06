@@ -228,7 +228,7 @@ async def invoice_pdf(deal_id: str, user: dict = Depends(require_permission("fin
             _idr(it.get("paid_amount")),  # item = paid_amount; invoice = paid (FIELD_MAP.md)
             _ref_label("ar_status", it.get("status")),
         ])
-    layout = await dl.get_layout(org, "LAPORAN")
+    layout = await dl.get_layout(org, "INVOICE")  # DOC-02: tampilan invoice sendiri
     subtitle = " · ".join(filter(None, [
         f"Pembeli: {deal.get('lead_name') or deal.get('customer_name') or '-'}",
         f"Unit: {deal.get('unit_code') or '-'}",

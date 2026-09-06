@@ -200,6 +200,7 @@ class AutomationRuleUpdate(BaseModel):
 
 class WaTemplateCreate(BaseModel):
     name: str
+    code: Optional[str] = None   # opsional; bila kosong diturunkan dari nama
     category: ref.WaTemplateCategory = "utility"
     language: str = "id"
     body: str

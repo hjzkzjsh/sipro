@@ -186,7 +186,7 @@ export default function AdminUsers() {
                   <td className="px-4 py-2.5 font-medium">{u.name}{u.phone ? <p className="text-[11px] font-normal text-muted-foreground">{u.phone}</p> : null}</td>
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{u.email}</td>
                   <td className="px-4 py-2.5">
-                    <span data-testid="user-role-badge" className="inline-flex items-center gap-1 rounded-full border bg-accent/50 px-2 py-0.5 text-xs">
+                    <span data-testid="user-role-badge" data-email={u.email} className="inline-flex items-center gap-1 rounded-full border bg-accent/50 px-2 py-0.5 text-xs">
                       <ShieldCheck className="h-3 w-3" /> {roleLabel(u.role)}
                     </span>
                   </td>
@@ -198,10 +198,10 @@ export default function AdminUsers() {
                   <td className="px-4 py-2.5 text-right">
                     {canUpdate ? (
                       <div className="inline-flex gap-1.5">
-                        <Button size="sm" variant="outline" data-testid="user-edit-btn" onClick={() => setEditing(u)}>
+                        <Button size="sm" variant="outline" data-testid="user-edit-btn" data-email={u.email} aria-label={`Ubah ${u.email}`} onClick={() => setEditing(u)}>
                           <Pencil className="mr-1 h-3.5 w-3.5" /> Ubah
                         </Button>
-                        <Button size="sm" variant="outline" data-testid="user-toggle-btn" onClick={() => toggleActive(u)}>
+                        <Button size="sm" variant="outline" data-testid="user-toggle-btn" data-email={u.email} aria-label={`${u.is_active ? "Nonaktifkan" : "Aktifkan"} ${u.email}`} onClick={() => toggleActive(u)}>
                           {u.is_active ? "Nonaktifkan" : "Aktifkan"}
                         </Button>
                       </div>

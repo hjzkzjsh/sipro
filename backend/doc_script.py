@@ -49,7 +49,7 @@ CATEGORY_OF = {
     "KWITANSI": "kwitansi", "PENAWARAN": "penawaran",
     "FAKTUR": "pajak", "BUPOT": "pajak",
     "SPK": "pihak_luar", "PO": "pihak_luar",
-    "SP": "penagihan", "PUNCHLIST": "lapangan", "LAPORAN": "laporan",
+    "SP": "penagihan", "INVOICE": "penagihan", "PUNCHLIST": "lapangan", "LAPORAN": "laporan",
 }
 
 # ------------------------------------------------------------------ kosakata placeholder

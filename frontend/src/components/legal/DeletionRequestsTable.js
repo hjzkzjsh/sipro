@@ -6,12 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatDateTimeWIB } from "@/utils/formatters";
 import api from "@/services/apiClient";
 import { LEGAL } from "@/constants/testIds";
+import { useReference } from "@/context/ReferenceContext";
 
-const STATUS = { open: "Baru", in_progress: "Diproses", done: "Selesai", rejected: "Ditolak" };
+// Label status dari SSOT /api/reference grup `deletion_request_status` (UI-02).
 const TONE = { open: "bg-amber-50 text-amber-800 border-amber-200", in_progress: "bg-sky-50 text-sky-800 border-sky-200",
   done: "bg-emerald-50 text-emerald-800 border-emerald-200", rejected: "bg-rose-50 text-rose-800 border-rose-200" };
 
 function Row({ r, editable, onSaved }) {
+  const { options, labelOf } = useReference();
   const [status, setStatus] = useState(r.status);
   const [note, setNote] = useState(r.note || "");
   const [busy, setBusy] = useState(false);
@@ -30,9 +32,9 @@ function Row({ r, editable, onSaved }) {
         {editable ? (
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger data-testid={LEGAL.reqStatus} className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{Object.entries(STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+            <SelectContent>{options("deletion_request_status").map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
           </Select>
-        ) : <span data-testid={LEGAL.reqStatus} className={`rounded border px-1.5 py-0.5 text-[11px] ${TONE[r.status]}`}>{STATUS[r.status]}</span>}
+        ) : <span data-testid={LEGAL.reqStatus} className={`rounded border px-1.5 py-0.5 text-[11px] ${TONE[r.status]}`}>{labelOf("deletion_request_status", r.status)}</span>}
       </td>
       <td className="px-3 py-2">
         <Input data-testid={LEGAL.reqNote} value={note} disabled={!editable} onChange={(e) => setNote(e.target.value)} placeholder="Catatan penanganan…" className="h-8 text-xs" />

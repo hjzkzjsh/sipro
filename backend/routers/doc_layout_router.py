@@ -122,6 +122,17 @@ async def preview(code: str, payload: DocPreviewIn, document_id: str = None,
         await ds.get_script(org, code))["content"]
     naskah_contoh = ds.sample_script(code, naskah)
     if (layout.get("kind") or "letter") == "table":
+        if code == "INVOICE":
+            pdf = pl.render_table(
+                layout, imgs, title="INVOICE CONTOH — Tagihan Pembayaran Unit",
+                subtitle="Pembeli: Budi Santoso · Unit: A-12 · Sudah dibayar: Rp 50.000.000 · Sisa: Rp 700.000.000",
+                columns=["Termin", "Jatuh tempo", "Jumlah", "Dibayar", "Status"],
+                rows=[["Booking fee", "2026-01-10", "Rp 5.000.000", "Rp 5.000.000", "Lunas"],
+                      ["Uang muka (DP)", "2026-02-10", "Rp 45.000.000", "Rp 45.000.000", "Lunas"],
+                      ["Pelunasan / pencairan KPR", "2026-04-10", "Rp 700.000.000", "Rp 0", "Belum jatuh tempo"]],
+                total_row=["TOTAL", "", "Rp 750.000.000", "Rp 50.000.000", ""], intro=naskah_contoh,
+                note="Pratinjau dengan data contoh — bukan invoice sungguhan.")
+            return Response(content=pdf, media_type="application/pdf")
         pdf = pl.render_table(
             layout, imgs, title="LAPORAN CONTOH — Aging Piutang",
             subtitle="Pratinjau tampilan laporan tabel", columns=["Kategori umur", "Nilai"],

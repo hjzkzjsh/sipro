@@ -387,7 +387,7 @@ async def cost_invoice_pdf(iid: str, user: dict = Depends(require_permission("fi
     comps = {x["code"]: x for x in (c.get("costs") or {}).get("components") or []}
     rows = [[it["name"], (comps.get(it["code"]) or {}).get("formula") or "-", "Ditagih ke pembeli (titipan)", _idr(it["amount"])]
             for it in inv.get("items") or []]
-    layout = await dl.get_layout(org, "LAPORAN")
+    layout = await dl.get_layout(org, "INVOICE")  # DOC-02: tampilan invoice sendiri
     subtitle = " · ".join([f"Pembeli: {inv.get('customer_name') or '-'}", f"Unit: {inv.get('unit_code') or '-'}",
                            f"Kontrak: {c.get('number') or '-'}", f"Skema: {(c.get('costs') or {}).get('scheme_name') or '-'}",
                            f"Status: {inv.get('status')}", f"Sudah dibayar: {_idr(inv.get('paid'))}",

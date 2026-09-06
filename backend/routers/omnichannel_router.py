@@ -183,7 +183,7 @@ async def put_reminder_mapping(p: WaReminderMappingIn,
 async def create_template(p: WaTemplateCreate,
                           user: dict = Depends(require_permission("wa_templates", "manage"))):
     org = user.get("org_id", ORG_ID)
-    code = _slug(p.name)
+    code = _slug(p.code) if (p.code or "").strip() else _slug(p.name)
     ts = now_iso()
     import wa_gateway as gw
     import wa_templates_meta as wtm
